@@ -23,7 +23,7 @@ typedef struct{
     unsigned *poly;
 }convolutional_code_coefs;
     
-convolutional_code* convoluational_code_construct( convoluational_code_coefs *p_coefs);
+convolutional_code* convolutional_code_construct( convolutional_code_coefs *p_coefs);
 
 
 void convolutional_code_destroy(convolutional_code *p_code);
@@ -39,17 +39,17 @@ void convolutional_code_destroy(convolutional_code *p_code);
  */
 unsigned encoding_bits(convolutional_code *p_code
                       ,unsigned char      *input
-                      ,size_t              input_sz
+                      ,int              input_sz
                       ,unsigned char      *output
-                      ,size_t              output_sz
+                      ,int              output_sz
                       ,unsigned            nb_bits
                       );
 
 unsigned encoding_bits_rsc(convolutional_code *p_code
                           ,unsigned char      *input
-                          ,size_t              input_sz
+                          ,int              input_sz
                           ,unsigned char      *output
-                          ,size_t              output_sz
+                          ,int              output_sz
                           ,unsigned            nb_bits
                           );
 

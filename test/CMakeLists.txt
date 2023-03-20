@@ -1,0 +1,15 @@
+cmake_policy(SET CMP0078 NEW)
+cmake_policy(SET CMP0086 NEW)
+
+find_package(SWIG REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development)
+
+INCLUDE(${SWIG_USE_FILE})
+
+
+SWIG_ADD_LIBRARY(pycode LANGUAGE python SOURCES pycode.i)
+set_property(TARGET pycode PROPERTY SWIG_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/../inc)
+set_property(TARGET pycode PROPERTY SWIG_GENERATED_INCLUDE_DIRECTORIES ${Python3_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR})
+
+SWIG_LINK_LIBRARIES(pycode libcode)
+

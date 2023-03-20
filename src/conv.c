@@ -10,14 +10,14 @@ struct convolutional_code_s
     unsigned order;
 };
 
-convolutional_code* convoluational_code_construct( convoluational_code_coefs *p_coefs)
+convolutional_code* convolutional_code_construct( convolutional_code_coefs *p_coefs)
 {
     convolutional_code *p_code = calloc(1, sizeof(convolutional_code));
     unsigned n_max = 0,  n;
     p_code->states = calloc(p_coefs->nb_out_bits, sizeof(unsigned));
     p_code->p_coefs = p_coefs;
 
-    for (unsigned p=0; p<nb_out_bits; p++){
+    for (unsigned p=0; p<p_coefs->nb_out_bits; p++){
         for (n=31; n>=0; n--){
             if (p_coefs->poly[p] & (1<<n)){
                 break;
@@ -47,9 +47,9 @@ static inline char calc_parity(unsigned x, unsigned n)
 
 unsigned encoding_bits(convolutional_code *p_code
                       ,unsigned char      *input
-                      ,size_t              input_sz
+                      ,int                 input_sz
                       ,unsigned char      *output
-                      ,size_t              output_sz
+                      ,int                 output_sz
                       ,unsigned            nb_bits
                       )
 {
@@ -57,6 +57,7 @@ unsigned encoding_bits(convolutional_code *p_code
     unsigned o_bytes = 0;
     unsigned i_bits = 0;
     unsigned o_bits = 0;
+    const convolutional_code_coefs *p_coefs = p_code->p_coefs;
     
     for(unsigned i_bits=0; i_bits<nb_bits; i_bits++){
         unsigned n = i_bits & 0x07;
@@ -68,7 +69,7 @@ unsigned encoding_bits(convolutional_code *p_code
         
         for(unsigned p=0; p<p_coefs->nb_out_bits; p++){
             p_code->states[p] = (p_code->states[p] << 1) & b;
-            y = p_codes->states[p] & p_coefs->poly[p];
+            y = p_code->states[p] & p_coefs->poly[p];
             s = calc_parity(y, p_code->order);
             
             output[o_bytes] |= (s << (7-o_bits));
@@ -86,9 +87,9 @@ unsigned encoding_bits(convolutional_code *p_code
 
 unsigned encoding_bits_rsc(convolutional_code *p_code
                           ,unsigned char      *input
-                          ,size_t              input_sz
+                          ,int                 input_sz
                           ,unsigned char      *output
-                          ,size_t              output_sz
+                          ,int                 output_sz
                           ,unsigned            nb_bits
                       )
 {
@@ -96,6 +97,7 @@ unsigned encoding_bits_rsc(convolutional_code *p_code
     unsigned o_bytes = 0;
     unsigned i_bits = 0;
     unsigned o_bits = 0;
+    const convolutional_code_coefs *p_coefs = p_code->p_coefs;    
     
     for(unsigned i_bits=0; i_bits<nb_bits; i_bits++){
         unsigned n = i_bits & 0x07;
@@ -112,14 +114,14 @@ unsigned encoding_bits_rsc(convolutional_code *p_code
         }
         
         for(unsigned p=1; p<p_coefs->nb_out_bits; p++){
-            y = p_codes->states[p] & p_coefs->poly[0];
-            s0 = calc_parity(y, p_state->order)
+            y = p_code->states[p] & p_coefs->poly[0];
+            s0 = calc_parity(y, p_code->order);
             b = b ^ s0;
             
             p_code->states[p] = (p_code->states[p] << 1) & b;
 
-            y = p_codes->states[p] & p_coefs->poly[p];
-            s1 = calc_parity(y)
+            y = p_code->states[p] & p_coefs->poly[p];
+            s1 = calc_parity(y, p_code->order);
                 
             output[o_bytes] |= (s1 << (7-o_bits++));
             if (o_bits == 8){
