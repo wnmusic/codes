@@ -19,14 +19,29 @@ typedef struct convolutional_code_s  convolutional_code;
  */
 
 typedef struct{
+    /* this specifies the rate of the code */
     unsigned  nb_out_bits;
+    /* this is the taps */
     unsigned *poly;
+    /* recursive systemaic code */
+    int b_rsc;
+    /* this times K is the decoder delay, -1 means maximum delay */
+    unsigned  dec_delay_factor; 
 }convolutional_code_coefs;
     
 convolutional_code* convolutional_code_construct( convolutional_code_coefs *p_coefs);
 
 
 void convolutional_code_destroy(convolutional_code *p_code);
+
+void get_trellis_node(convolutional_code *p_code
+                     ,unsigned node
+                     ,unsigned *p0
+                     ,unsigned *p1
+                     ,unsigned      *p_in_bit
+                     ,unsigned      *p_out0_bits
+                     ,unsigned      *p_out1_bits
+                     );
 
 /* input is the octets of input bits, so is the output, 
  * the sz specitifies the number of bytes of the input array 
@@ -35,23 +50,21 @@ void convolutional_code_destroy(convolutional_code *p_code);
  * 
  * the rsc version is the systematic encoder, information bits will be the 
  * first output, followed by the parity bits. 
+
+ * this encodes the input bits and terminate the block, so the number
+ * of output bits should be (nb_bits + K)*v, where K is the constraint length 
+ * v is the 1/rate, the output array should have enough space for the output
+ *
  *
  */
-unsigned encoding_bits(convolutional_code *p_code
-                      ,unsigned char      *input
-                      ,int              input_sz
-                      ,unsigned char      *output
-                      ,int              output_sz
-                      ,unsigned            nb_bits
-                      );
+unsigned encode(convolutional_code *p_code
+               ,unsigned char      *in
+               ,int              in_sz
+               ,unsigned char      *out
+               ,int              out_sz
+               ,unsigned            nb_bits
+               );
 
-unsigned encoding_bits_rsc(convolutional_code *p_code
-                          ,unsigned char      *input
-                          ,int              input_sz
-                          ,unsigned char      *output
-                          ,int              output_sz
-                          ,unsigned            nb_bits
-                          );
 
 
 
