@@ -13,6 +13,7 @@ import_array();
 
 %apply (unsigned char *IN_ARRAY1, int DIM1) {(unsigned char *in, int in_sz)};
 %apply (unsigned char *ARGOUT_ARRAY1, int DIM1) {(unsigned char *out, int out_sz)};
+%apply (float *IN_ARRAY1, int DIM1) {(float *input, int input_sz)};
 
 %include "typemaps.i"
 %apply (unsigned *OUTPUT) { unsigned *p0, unsigned *p1, unsigned  *p_in_bit, unsigned  *p_out0_bits, unsigned *p_out1_bits};

@@ -66,6 +66,15 @@ unsigned encode(convolutional_code *p_code
                );
 
 
+unsigned viterbi_decode(convolutional_code *p_code
+                       ,float              *input
+                       ,int                 input_sz
+                       ,unsigned char      *out
+                       ,int                 out_sz
+                       ,unsigned            nb_bits    
+                       );
+
+
 
 
 
