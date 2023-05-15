@@ -26,6 +26,17 @@ struct convolutional_code_s
     char **pp_b_active; // whether the state is active
     char *p_b_merged;   //whehter the path has merged
     int16_t *p_active_state;
+
+
+    /* fano deocding */
+    float curr_snr; /* currnet estimated signal to noise ratio, might change between blocks  */
+    float *p_metrics_table;
+    float th_delta;    
+    float running_metric;
+    float running_th;
+    int   new_flag;
+    int   bit_index;
+    
 };
 
 typedef struct
@@ -479,4 +490,26 @@ unsigned viterbi_decode(convolutional_code *p_code
     return stream.obyte*8 + stream.obit;
 }        
 
-               
+
+static void
+update_metric_table_and_th(p_code, snr_dB)
+{
+
+}
+
+unsigned fano_decode(convolutional_code *p_code
+                    ,float              *input
+                    ,int                 input_sz
+                    ,unsigned char      *out
+                    ,int                 out_sz
+                    ,unsigned            nb_bits
+                    ,float               snr_dB
+                    )
+{
+
+    if (fabs(p_code->curr_snr - snr_dB) > 1.5f){
+        p_code->curr_snr = snr_dB;
+        update_metric_table_and_th(p_code, snr_dB);
+    }
+
+}
