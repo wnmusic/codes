@@ -2,7 +2,7 @@ cmake_policy(SET CMP0078 NEW)
 cmake_policy(SET CMP0086 NEW)
 
 find_package(SWIG REQUIRED)
-find_package(Python3 COMPONENTS Interpreter Development NumPy)
+find_package(Python3 EXACT 3.11.6 COMPONENTS Interpreter Development NumPy)
 
 INCLUDE(${SWIG_USE_FILE})
 

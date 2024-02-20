@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include "debug_trace.h"
+#include <math.h>
 
 typedef  struct{
     int16_t curr_s;
@@ -491,12 +492,6 @@ unsigned viterbi_decode(convolutional_code *p_code
 }        
 
 
-static void
-update_metric_table_and_th(p_code, snr_dB)
-{
-
-}
-
 unsigned fano_decode(convolutional_code *p_code
                     ,float              *input
                     ,int                 input_sz
@@ -509,7 +504,6 @@ unsigned fano_decode(convolutional_code *p_code
 
     if (fabs(p_code->curr_snr - snr_dB) > 1.5f){
         p_code->curr_snr = snr_dB;
-        update_metric_table_and_th(p_code, snr_dB);
     }
-
+    return 0;
 }

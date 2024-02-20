@@ -12,9 +12,10 @@ endif()
 
 SET(CMAKE_C_FLAGS  "-fPIC")
 set(CMAKE_C_FLAGS_RELEASE "-O3 -mavx")
-add_library(libcode src/conv.c)
+add_library(libcode src/conv.c src/gf2.c src/rs.c src/gf2_8.c)
 
 target_include_directories(libcode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+target_link_libraries(libcode m)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
    add_compile_definitions("_DEBUG=1")    
