@@ -12,8 +12,11 @@ def test_rs255_encoding(k):
     info = np.zeros(k, dtype=np.uint8);
     info[2] = 1;
 
-    n, code = rs255_encode(rs, info, 255)
-    print(n, code)
+    n, genpoly = rs255_encoder_genpoly(rs, 40);
+    print(n, genpoly)
+
+    #n, code = rs255_encode(rs, info, 255)
+    #print(n, code)
 
     rs255_encoder_destroy(rs)
     

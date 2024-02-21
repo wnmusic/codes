@@ -4,15 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static inline uint8_t deg_plus_one(uint32_t f)
-{
-    uint8_t d = 0;
-    while(f){
-        d++;
-        f = f>>1;
-    }
-    return d;
-}
+#include "gf2.h"
 
 /* convolve the coefficient of f and g, deg(f) and deg(g) < 8 */
 uint16_t gf2_poly_mult(uint8_t f, uint8_t g)

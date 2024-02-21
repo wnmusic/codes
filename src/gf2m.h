@@ -10,10 +10,9 @@
 
 /* following tables are genreated with gen_gf2.py */
 
-static const unsigned degree_gen_poly = 8;
 /* this is the primitive element of the finite field */
 
-static const uint8_t alphas[] = { 
+static const uint8_t alphas_8[] = { 
 1, 2, 4, 8, 16, 32, 64, 128, 29, 58, 116, 232, 205, 135, 19, 38, 
 76, 152, 45, 90, 180, 117, 234, 201, 143, 3, 6, 12, 24, 48, 96, 192, 
 157, 39, 78, 156, 37, 74, 148, 53, 106, 212, 181, 119, 238, 193, 159, 35, 
@@ -31,7 +30,7 @@ static const uint8_t alphas[] = {
 18, 36, 72, 144, 61, 122, 244, 245, 247, 243, 251, 235, 203, 139, 11, 22, 
 44, 88, 176, 125, 250, 233, 207, 131, 27, 54, 108, 216, 173, 71, 142, 
 };
-static const uint8_t index_of_alphas[] = { 255, 
+static const uint8_t index_of_alphas_8[] = { 255, 
 0, 1, 25, 2, 50, 26, 198, 3, 223, 51, 238, 27, 104, 199, 75, 
 4, 100, 224, 14, 52, 141, 239, 129, 28, 193, 105, 248, 200, 8, 76, 113, 
 5, 138, 101, 47, 225, 36, 15, 33, 53, 147, 142, 218, 240, 18, 130, 69, 
@@ -48,10 +47,37 @@ static const uint8_t index_of_alphas[] = { 255,
 108, 161, 59, 82, 41, 157, 85, 170, 251, 96, 134, 177, 187, 204, 62, 90, 
 203, 89, 95, 176, 156, 169, 160, 81, 11, 245, 22, 235, 122, 117, 44, 215, 
 79, 174, 213, 233, 230, 231, 173, 232, 116, 214, 244, 234, 168, 80, 88, 175, 
-
 };
 
-static const unsigned num_ele_mutiplicity = (1<<degree_gen_poly) - 1; 
+static const uint8_t alphas_3[] = { 
+1, 2, 4, 3, 6, 7, 5, 
+};
+static const uint8_t index_of_alphas_3[] = { 255, 
+0, 1, 3, 2, 6, 4, 5, 
+};
+
+
+static unsigned num_ele_mutiplicity;
+static const uint8_t *alphas = NULL;
+static const uint8_t *index_of_alphas = NULL;
+
+static inline const uint8_t* setup_gf2m_ops(int m)
+{
+    if (m == 8){
+        alphas = &alphas_8[0];
+        index_of_alphas = &index_of_alphas_8[0];
+        num_ele_mutiplicity = (1<<8) - 1;
+        return  alphas;
+    }
+    else if (m == 3){
+        alphas = &alphas_3[0];
+        index_of_alphas = &index_of_alphas_3[0];
+        num_ele_mutiplicity = (1<<3) - 1;
+        return  alphas;
+    }
+
+    return NULL;
+}
 
 static inline uint8_t gf2m_add(uint8_t a, uint8_t b)
 {

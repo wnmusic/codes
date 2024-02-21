@@ -19,12 +19,23 @@ def test_gf2m_poly_div():
     g = np.array([88, 48, 99, 246, 2, 1], dtype=np.uint8)
     q, dq, dr = gf2m_poly_div(g, f, 5)
     print(q, dq, dr, g)
+
+def test_gf2m_ge():
+    A = np.array([[88, 48, 99, 125],
+                   [246, 2, 1, 5],
+                   [137, 72, 9, 4],
+                  [43, 47, 234, 6]
+                  ], dtype=np.uint8)
+    b = np.array([43, 89, 101, 27], dtype=np.uint8)
+    gf2m_gaussian_elemination(A, b)
+    print(A, b)
     
 
 if __name__ == '__main__':
     input(os.getpid())
-    test_poly_mult()
-    test_gf2m_poly_div()
+    #test_poly_mult()
+    #test_gf2m_poly_div()
+    test_gf2m_ge()
 
     
     #nd = 8;

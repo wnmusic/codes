@@ -27,8 +27,7 @@ def generate_primitive_mapping(deg):
         alpha_1 = gf2_8_mult_mod(alpha_1, alpha, p)
         la += [alpha_1]
 
-    cstr = "static const unsigned degree_gen_poly = {};\n".format(deg)
-    cstr += "static const uint8_t alphas[] = { \n"
+    cstr = "static const uint8_t alphas_%d[] = { \n"%deg
     for (i, e) in enumerate(la):
         cstr += "%d, " % e
         if (i % 16 == 15):
@@ -38,7 +37,7 @@ def generate_primitive_mapping(deg):
     print(cstr)
 
     # genreate the reverse index of the alphas
-    cstr = "static const uint8_t index_of_alphas[] = { 255, \n"
+    cstr = "static const uint8_t index_of_alphas_%d[] = { 255, \n"%deg
     for i in range(1, 1<<deg):
         cstr += "%d, " % la.index(i)
         if (i % 16 == 15):

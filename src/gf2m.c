@@ -1,5 +1,5 @@
 /*polynomial operations under 2^m finite field, where m <= 8 */
-#include "gf2_8.h"
+#include "gf2m.h"
 
 
 /* multiply f(x) with g(x), deg[f(x)] < df, deg[g(x)]  < dg
@@ -52,3 +52,47 @@ void gf2m_poly_div(uint8_t* fr, int dfr,
     }
     *dr = dfr;
 }
+
+
+/* the matrix inverse on GF(2^m). matrix A will be square,
+ * After operations, A will be the ideintify matrix,
+ * and b contains the result 
+ */
+void gf2m_gaussian_elemination(uint8_t *A, int dim_A1, int dim_A2, uint8_t *b, int dim)
+{
+    assert(dim_A1 == dim_A2);
+    assert(dim_A2 == dim);
+
+    (void)dim_A1;
+    (void)dim_A2;
+
+    /* forward round */
+    for (unsigned i=0; i<dim-1; i++){
+        for (unsigned j=i+1; j<dim; j++){
+            
+            uint8_t m = gf2m_div(A[j*dim+i], A[i*dim+i]);
+            
+            for (unsigned k=i;k<dim; k++){
+                A[j*dim+k] = gf2m_add(A[j*dim+k], gf2m_mult(m, A[i*dim + k]));
+            }
+
+            b[j] = gf2m_add(b[j], gf2m_mult(m, b[i]));
+        }
+    }
+
+    /* bottom up */
+    for (int i=dim-1; i> 0; i--){
+        for (int j=i-1; j>=0; j--){
+            uint8_t m = gf2m_div(A[j*dim+i], A[i*dim+i]);
+            b[j] = gf2m_add(b[j], gf2m_mult(m, b[i]));
+            A[j*dim + i] = 0;
+        }
+    }
+
+    for (unsigned i=0; i<dim; i++){
+        b[i] = gf2m_div(b[i], A[i*dim +i]);
+        A[i*dim + i] = 1;
+    }
+
+}
+    
