@@ -7,21 +7,21 @@ import numpy as np
 
 
 
-def test_rs255_encoding(k):
-    rs = rs255_encoder_construct(k)
+def test_rs_encoding(n, k):
+    rs = rs_encoder_construct(n, k)
     info = np.zeros(k, dtype=np.uint8);
     info[2] = 1;
 
-    n, genpoly = rs255_encoder_genpoly(rs, 40);
+    n, genpoly = rs_get_genpoly(rs, n-k+1);
     print(n, genpoly)
 
-    #n, code = rs255_encode(rs, info, 255)
+    #n, code = rs_encode(rs, info, 255)
     #print(n, code)
 
-    rs255_encoder_destroy(rs)
+    rs_encoder_destroy(rs)
     
 
 
 if __name__ == '__main__':
     input(os.getpid())
-    test_rs255_encoding(233)
+    test_rs_encoding(7, 3)

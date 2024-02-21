@@ -1,6 +1,9 @@
 /*polynomial operations under 2^m finite field, where m <= 8 */
 #include "gf2m.h"
 
+unsigned num_ele_mutiplicity;
+const uint8_t *alphas = NULL;
+const uint8_t *index_of_alphas = NULL;
 
 /* multiply f(x) with g(x), deg[f(x)] < df, deg[g(x)]  < dg
  * the coeffients are from Fq, where q=2^m

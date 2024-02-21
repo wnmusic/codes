@@ -57,9 +57,9 @@ static const uint8_t index_of_alphas_3[] = { 255,
 };
 
 
-static unsigned num_ele_mutiplicity;
-static const uint8_t *alphas = NULL;
-static const uint8_t *index_of_alphas = NULL;
+extern unsigned num_ele_mutiplicity;
+extern const uint8_t *alphas;
+extern const uint8_t *index_of_alphas;
 
 static inline const uint8_t* setup_gf2m_ops(int m)
 {
