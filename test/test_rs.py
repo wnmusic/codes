@@ -8,7 +8,7 @@ import numpy as np
 
 
 def test_rs_encoding(n, k):
-    rs = rs_encoder_construct(n, k)
+    rs = rs_code_construct(n, k)
     info = np.zeros(k, dtype=np.uint8);
     info[2] = 1;
 
@@ -18,7 +18,7 @@ def test_rs_encoding(n, k):
     #n, code = rs_encode(rs, info, 255)
     #print(n, code)
 
-    rs_encoder_destroy(rs)
+    rs_code_destroy(rs)
     
 
 
