@@ -36,6 +36,11 @@ void gf2m_poly_div(uint8_t* fr, int dfr,
 {
 
     memset(out, 0, sizeof(uint8_t) * out_sz);
+
+    /* make sure that the degree is the tightest */
+    while(!fr[dfr-1] && dfr >0)  dfr--;
+    while(!g[dg-1] && dg >0)  dg--;
+    
     *dq = dfr - dg + 1;
     while(dfr >= dg){
         uint8_t m = gf2m_div(fr[dfr-1], g[dg-1]);
@@ -96,6 +101,5 @@ void gf2m_gaussian_elemination(uint8_t *A, int dim_A1, int dim_A2, uint8_t *b, i
         b[i] = gf2m_div(b[i], A[i*dim +i]);
         A[i*dim + i] = 1;
     }
-
 }
     

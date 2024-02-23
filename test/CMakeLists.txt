@@ -1,7 +1,6 @@
 cmake_policy(SET CMP0078 NEW)
 cmake_policy(SET CMP0086 NEW)
 
-set (ENV{VIRTUAL_ENV} "/Users/nzwang/PythonEnv/codes")
 set (Python3_FIND_VIRTUALENV FIRST)
 
 find_package(SWIG REQUIRED)

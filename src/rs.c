@@ -169,7 +169,6 @@ unsigned rs_encode_sys(rs_code *p_enc
 }
 
 
-
 unsigned rs_decode_ge(rs_code         *p_rs
 		     ,unsigned char   *in
 		     ,int              in_sz
@@ -205,8 +204,6 @@ unsigned rs_decode_ge(rs_code         *p_rs
     gf2m_poly_div(b, k+t, lambda, t+1, out, out_sz, &dq, &dr);
 
     if (dr == 0){
-	/* lambda(x) is a divisor, */
-	assert(dq == k);
 	return k;
     }
 
