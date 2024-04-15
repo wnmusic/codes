@@ -61,22 +61,26 @@ extern unsigned num_ele_mutiplicity;
 extern const uint8_t *alphas;
 extern const uint8_t *index_of_alphas;
 
-static inline const uint8_t* setup_gf2m_ops(int m)
+static inline void setup_gf2m_ops(int m, const uint8_t **pp_alpha, const uint8_t **pp_index)
 {
     if (m == 8){
         alphas = &alphas_8[0];
         index_of_alphas = &index_of_alphas_8[0];
         num_ele_mutiplicity = (1<<8) - 1;
-        return  alphas;
+
     }
     else if (m == 3){
         alphas = &alphas_3[0];
         index_of_alphas = &index_of_alphas_3[0];
         num_ele_mutiplicity = (1<<3) - 1;
-        return  alphas;
     }
 
-    return NULL;
+    if (pp_alpha){
+	*pp_alpha = alphas;
+    }
+    if (pp_index){
+	*pp_index = index_of_alphas;
+    }
 }
 
 static inline uint8_t gf2m_add(uint8_t a, uint8_t b)

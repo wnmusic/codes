@@ -17,7 +17,9 @@ struct rs_code_s{
     uint8_t *dec_mat_0;
     uint8_t *dec_mat_1;
     const uint8_t *alphas;
-
+    const uint8_t *index_of_alphas;
+    /* BM method of decoding */
+       
     uint8_t *scratch;
     
 };
@@ -48,15 +50,19 @@ rs_code* rs_code_construct(int n, int k)
 {
     rs_code *p_state = calloc(sizeof(rs_code), 1);
     int m = deg_plus_one(n);
-
+    int z = 1;
     
     p_state->n = n;
     p_state->k = k;
     p_state->d = n - k + 1;
     
     assert((n-k) % 2 == 0);
+    for (int i=0; i<m;i++){
+	z *= 2;
+    }
+    assert( (n+1) == z && "make sure that n can be used as mask "); 
     
-    p_state->alphas = setup_gf2m_ops(m);
+    setup_gf2m_ops(m, &p_state->alphas, &p_state->index_of_alphas);
     assert(p_state->alphas);
     
     p_state->generator = (uint8_t**)calloc(sizeof(uint8_t*), k);
@@ -209,4 +215,101 @@ unsigned rs_decode_ge(rs_code         *p_rs
 
     /* decoding failed */
     return 0;
+}
+
+/* BM method to decode systematic RS codes */
+
+/* calculate the synchrom
+   in array stores the receiving symbols, the polynomnial will be
+   r(x) = r0 + r_1X + r_2X^2 + + r_(n-1)
+   the syndromes will just be  r(alpha), r(alpha^2) ... r(alpha^(n-k))
+*/
+
+static void rs_syndromes_calc(rs_code          *p_rs
+			     ,unsigned char    *r
+			     ,unsigned char    *s
+			     )
+{
+    const unsigned n  = p_rs->n;
+    const unsigned k  = p_rs->k;
+
+    uint8_t *r_idx = p_rs->scratch;
+    uint8_t *curr_idx = p_rs->scratch + n;
+    
+    for (int i=0; i<n; i++){
+	r_idx[i] = (p_rs->index_of_alphas[ r[i] ] + i) & n;
+    }
+
+    for (int i=0; i<n-k; i++){
+	uint8_t sum = 0;
+	for (int j=0; j<n;j++){
+	    sum = sum ^ p_rs->alphas[ r_idx[j] ];
+	    r_idx[j] = (r_idx[j] + j) & n;
+	}
+	s[i] = sum;
+    }
+}
+
+/* this is Berlekamp-Massy interation to find the error locator poly
+ * (1+b1X)*(1+b2X)*... *(1+btX)
+ *  the input is syndrome sequence
+ */
+static void BM_iteration(rs_code       *p_rs
+			,unsigned char *s        /* input syndrome */
+			,unsigned char *lamda    /* output error locator polynomial*/
+			)
+{
+    const unsigned t = (p_rs->n - p_rs->k) / 2;
+    const unsigned n  = p_rs->n;
+    const unsigned k  = p_rs->k;
+    uint8_t *prev_lambda = p_rs->scratch;
+    uint8_t l = 0;
+    uint8_t d_l = 0;
+    uint8_t x = 1;
+    uint8_t d = s[0];  /* the first itereation*/
+
+    
+    memset(lambda, 2*t, 0);
+    memset(prev_lambda, 2*t, 0);
+    lambda[0] = 1;
+    prev_lambda[0] = 1;
+
+
+    for (int i=0; i<n-k; i++){
+
+	if (d == 0){
+	    x = x + 1;
+	    continue;
+	}
+
+	//update the 
+	
+	
+
+    }
+    
+    
+
+
+
+}
+			
+
+ 
+
+
+unsigned rs_decode_BM(rs_code         *p_rs
+		     ,unsigned char   *in
+		     ,int              in_sz
+		     ,unsigned char   *out
+		     ,int              out_sz
+		     )
+{
+    const unsigned t = (p_rs->n - p_rs->k) / 2;
+    const unsigned n  = p_rs->n;
+    const unsigned k  = p_rs->k;
+    uint8_t *scratch = p_rs->scratch;
+
+
+
 }
