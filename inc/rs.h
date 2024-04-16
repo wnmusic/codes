@@ -29,3 +29,9 @@ unsigned rs_decode_ge(rs_code         *p_rs
 		     );
 
 
+unsigned rs_decode_BM(rs_code         *p_rs
+		     ,unsigned char   *in
+		     ,int              in_sz
+		     ,unsigned char   *out
+		     ,int              out_sz
+		     );

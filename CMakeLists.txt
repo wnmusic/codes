@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.0)   
 project(libcode)
 
-set ( CMAKE_MODULE_PATH
-  ${PROJECT_SOURCE_DIR}/cmake
-)
+#set ( CMAKE_MODULE_PATH
+#  ${PROJECT_SOURCE_DIR}/cmake
+#)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-   
 
 SET(CMAKE_C_FLAGS  "-fPIC")
 set(CMAKE_C_FLAGS_RELEASE "-O3 -mavx")
