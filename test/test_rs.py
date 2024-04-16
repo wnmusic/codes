@@ -9,16 +9,23 @@ import numpy as np
 
 def test_rs_encoding(n, k):
     rs = rs_code_construct(n, k)
-    info = np.zeros(k, dtype=np.uint8);
-    info[1] = 2;
-    info[0] = 7;
+    info = np.random.randint(0, n, k, dtype=np.uint8);
+    
+    max_t = (n-k+1)//2
 
+    err = np.zeros(n, dtype=np.uint8);
 
-    d, code = rs_encode(rs, info, n)
-    print(d, code)
+    for i in range(max_t):
+        pos = np.random.randint(0, n)
+        err[pos] = np.random.randint(0, n)
+        
+    _, code = rs_encode(rs, info, n)
 
-    d, rec = rs_decode_ge(rs, code, k)
-    print(d, rec)
+    code = np.bitwise_xor(code, err)
+
+    _, rec = rs_decode_ge(rs, code, k)
+
+    assert np.any(info - rec)==False, "something defintely wrong\n info = {} \n rec = {}".format(info, rec)
 
     
     #d, genpoly = rs_get_genpoly(rs, n-k+1);
@@ -32,4 +39,4 @@ def test_rs_encoding(n, k):
 
 if __name__ == '__main__':
     input(os.getpid())
-    test_rs_encoding(7, 3)
+    test_rs_encoding(255, 233)

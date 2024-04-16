@@ -262,35 +262,51 @@ static void BM_iteration(rs_code       *p_rs
     const unsigned t = (p_rs->n - p_rs->k) / 2;
     const unsigned n  = p_rs->n;
     const unsigned k  = p_rs->k;
+    const unsigned dt1 = 2*t + 1;
     uint8_t *prev_lambda = p_rs->scratch;
-    uint8_t l = 0;
-    uint8_t d_l = 0;
+    uint8_t *tmp_lambda = p_rs->scratch + n;    
+    uint8_t L = 0;
     uint8_t x = 1;
-    uint8_t d = s[0];  /* the first itereation*/
-
+    uint8_t b = 1;
     
-    memset(lambda, 2*t, 0);
-    memset(prev_lambda, 2*t, 0);
+    memset(lambda, dt1, 0);
+    memset(prev_lambda, dt1, 0);
     lambda[0] = 1;
     prev_lambda[0] = 1;
 
-
     for (int i=0; i<n-k; i++){
-
+	uint8_t d = s[i];
+	uint8_t scale;
+	for (int j=1; j<=L && j<=i; j++){
+	    d = d ^ gf2m_mult(lambda[j], s[i-j]);
+	}
 	if (d == 0){
 	    x = x + 1;
 	    continue;
 	}
 
-	//update the 
-	
-	
+	scale = gf2m_div_nz(d,b);
+	if (2*L > i){ /* we don't have to increase the degree of connection */
+
+	    for (int j=x; j<=L;j++){
+		lambda[j] = lambda[j] ^ gf2m_mult(scale, prev_lambda[j-x]);
+	    }
+	    x = x + 1;
+	}else{
+	    /* we now have to increase the degree, and shall store current
+	       lambda to prev for later use
+	    */
+	    memcpy(tmp_lambda, lambda, dt1);
+	    L = i+1-L;
+	    for (int j=x; j<=L;j++){
+		lambda[j] = lambda[j] ^ gf2m_mult(scale, prev_lambda[j-x]);
+	    }
+	    memcpy(prev_lambda, lambda, dt1);
+	    b = d;
+	    x = 1;
+	}
 
     }
-    
-    
-
-
 
 }
 			
