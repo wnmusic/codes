@@ -18,6 +18,7 @@ struct rs_code_s{
     uint8_t *dec_mat_1;
     const uint8_t *alphas;
     const uint8_t *index_of_alphas;
+    uint8_t  mul_order;
     /* BM method of decoding */
        
     uint8_t *scratch;
@@ -63,7 +64,7 @@ rs_code* rs_code_construct(int n, int k)
     }
     assert( (n+1) == z && "make sure that n can be used as mask "); 
     
-    setup_gf2m_ops(m, &p_state->alphas, &p_state->index_of_alphas);
+    setup_gf2m_ops(m, &p_state->alphas, &p_state->index_of_alphas, &p_state->mul_order);
     assert(p_state->alphas);
     
     p_state->generator = (uint8_t**)calloc(sizeof(uint8_t*), k);
@@ -161,19 +162,40 @@ unsigned rs_encode_sys(rs_code *p_enc
 {
     const unsigned n  = p_enc->n;
     const unsigned k  = p_enc->k;
-    int dq, dr;
-    uint8_t *in1 = p_enc->scratch;
-    uint8_t *q = p_enc->scratch + n;
-    memcpy(&in1[n-k], in, k);
+    uint8_t *g_idx = p_enc->scratch;
 
-    gf2m_poly_div(in1, n, p_enc->genpoly, n-k+1, q, n, &dq, &dr);
-    assert(dr == n-k);
+    /* the degree of generator polynomial is n-k, the number of parity check
+       and it is monontic.
+       here we use 255 to represent 0's power. 
+     */
+    memset(out, 0, n-k);
+    memcpy(&out[n-k], in, k);
+    
+    for (int i = 0; i<n-k;i++){
+	g_idx[i] = p_enc->index_of_alphas[ p_enc->genpoly[i] ];
+    }
+    
+    for (int i=k-1; i>=0; i--){
+	uint8_t m = in[i] ^ out[n-k-1];
+	uint8_t m_idx = p_enc->index_of_alphas[m];
 
-    memcpy(out, in1, n-k);
-    memcpy(&out[n-k], in ,k);
+        for (int j=n-k-1; j>=1; j--){
+	    if (m  && p_enc->genpoly[j]){
+		out[j] = out[j-1] ^ p_enc->alphas[ (m_idx + g_idx[j] ) % p_enc->mul_order];
+	    }else{
+		out[j] = out[j-1];
+	    }
+        }
+	if (m && p_enc->genpoly[0]){
+	    out[0] = p_enc->alphas[ (m_idx + g_idx[0] ) % p_enc->mul_order];
+	}else{
+	    out[0] = 0;
+	}
+    }
 
     return n;
 }
+
 
 
 unsigned rs_decode_ge(rs_code         *p_rs
@@ -234,22 +256,22 @@ static void rs_syndromes_calc(rs_code          *p_rs
 {
     const unsigned n  = p_rs->n;
     const unsigned k  = p_rs->k;
+    const uint8_t order = p_rs->mul_order;
 
     uint8_t *r_idx = scratch;
     uint8_t *curr_idx = scratch + n;
     
-    for (int i=0; i<n; i++){
-	if (r[i]){
-	    r_idx[i] = (p_rs->index_of_alphas[ r[i] ] + i) & n;
-	}
+    for (uint8_t i=0; i<n; i++){
+	uint16_t j = (p_rs->index_of_alphas[ r[i] ] + i);
+	r_idx[i] = j >= order ? j - order : j;
     }
 
-    for (int i=0; i<n-k; i++){
+    for (uint8_t i=0; i<n-k; i++){
 	uint8_t sum = 0;
-	for (int j=0; j<n;j++){
+	for (uint8_t j=0; j<n;j++){
 	    if (r[j]){
 		sum = sum ^ p_rs->alphas[ r_idx[j] ];
-		r_idx[j] = (r_idx[j] + j) & n;
+		r_idx[j] = (r_idx[j] + j) % order;
 	    }
 	}
 	s[i] = sum;
@@ -282,10 +304,10 @@ static void BM_iteration(rs_code       *p_rs
     lambda[0] = 1;
     prev_lambda[0] = 1;
 
-    for (int i=0; i<n-k; i++){
+    for (uint8_t i=0; i<n-k; i++){
 	uint8_t d = s[i];
 	uint8_t scale;
-	for (int j=1; j<=L && j<=i; j++){
+	for (uint8_t j=1; j<=L && j<=i; j++){
 	    d = d ^ gf2m_mult(lambda[j], s[i-j]);
 	}
 	if (d == 0){
@@ -296,7 +318,7 @@ static void BM_iteration(rs_code       *p_rs
 	scale = gf2m_div_nz(d,b);
 	if (2*L > i){ /* we don't have to increase the degree of connection */
 
-	    for (int j=x; j<=L;j++){
+	    for (uint8_t j=x; j<=L;j++){
 		lambda[j] = lambda[j] ^ gf2m_mult(scale, prev_lambda[j-x]);
 	    }
 	    x = x + 1;
@@ -307,7 +329,7 @@ static void BM_iteration(rs_code       *p_rs
 	    memcpy(tmp_lambda, lambda, L+1);
 	    tmp_L = L;
 	    L = i+1-L;
-	    for (int j=x; j<=L;j++){
+	    for (uint8_t j=x; j<=L;j++){
 		lambda[j] = lambda[j] ^ gf2m_mult(scale, prev_lambda[j-x]);
 	    }
 	    memcpy(prev_lambda, tmp_lambda, tmp_L+1);
@@ -331,8 +353,10 @@ unsigned rs_decode_BM(rs_code         *p_rs
     const unsigned t = (p_rs->n - p_rs->k) / 2;
     const unsigned n  = p_rs->n;
     const unsigned k  = p_rs->k;
+    const uint8_t order = p_rs->mul_order;
+    
     unsigned offset = 0;
-    uint8_t	*syndroms      = p_rs->scratch + offset;  offset += n;
+    uint8_t	*syndroms      = p_rs->scratch + offset;  offset += n;   /* this will be reused, so n bytes */
     uint8_t	*err_poly      = p_rs->scratch + offset;  offset += t+1;
     uint8_t	*err_coefs_idx = p_rs->scratch + offset;  offset += t+1;
     uint8_t	*beta_idx      = p_rs->scratch + offset;  offset += t+1;
@@ -340,27 +364,29 @@ unsigned rs_decode_BM(rs_code         *p_rs
     uint8_t	*z_poly_idx    = p_rs->scratch + offset;  offset += t+1;
     uint8_t	*err_mag       = p_rs->scratch + offset;  offset += t+1;
     uint8_t p = 0;
-
+    
+    assert(offset < 4*n);
+    
     rs_syndromes_calc(p_rs, in, syndroms, p_rs->scratch + offset);
     BM_iteration(p_rs, syndroms, err_poly, p_rs->scratch + offset);
 
-    for (int i=0; i<=t; i++){
+    for (uint8_t i=0; i<=t; i++){
 	err_coefs_idx[i] = p_rs->index_of_alphas[ err_poly[i] ];
     }
 
-    for (int i=n-1, p=0; i>=0; i--){
+    for (int i=n-1; i>=0; i--){
 	/* 1 test if i bit has errors, this is the same as testing
 	 * if alpha^i is a root of err locator polynomial;
 	 */
 	uint8_t check = 1;
-	for (int j=1; j<=t; j++){
+	for (uint8_t j=1; j<=t; j++){
 	    if (err_poly[j]){
-		err_coefs_idx[j] = (err_coefs_idx[j] + j) & n;
+		err_coefs_idx[j] = (err_coefs_idx[j] + j) % order;
 		check = check ^ p_rs->alphas[ err_coefs_idx[j] ];
 	    }
 	}
 
-	if (check){
+	if (!check){
 	    beta_idx[p]  = i;
 	    p++;
 	}
@@ -371,18 +397,20 @@ unsigned rs_decode_BM(rs_code         *p_rs
 	return 0;
     }
     else if (p==0){
-	memcpy(out, in, k);
+	memcpy(out, &in[n-k], k);
 	return k;
     }
 
     /* compute Z(x)  */
     z_poly[0] = 1;
-    for (int i=1; i<=p; i++){
+    for (uint8_t i=1; i<=p; i++){
 	z_poly[i] = err_poly[i];
 	for (int j=i-1; j>=0; j--){
-	    z_poly[i] = z_poly[i] ^ gf2m_mult(err_poly[j], syndroms[i-j]);
+	    z_poly[i] = z_poly[i] ^ gf2m_mult(err_poly[j], syndroms[i-j-1]);
 	}
-	z_poly_idx[i] = p_rs->index_of_alphas[ z_poly[i] ];
+	if (z_poly[i]){
+	    z_poly_idx[i] = p_rs->index_of_alphas[ z_poly[i] ];
+	}
     }
 
     /* find the error magnitude */
@@ -391,19 +419,21 @@ unsigned rs_decode_BM(rs_code         *p_rs
 	uint8_t z = 1;
 	uint8_t denom = 0;
 	for (int j=1; j<=p; j++){
-	    uint8_t idx = (z_poly_idx[j] + j*beta_inv_idx) & n;
-	    z = z ^ p_rs->alphas[ idx ];
+	    if (z_poly[j]){
+		uint8_t idx = (z_poly_idx[j] + j*beta_inv_idx) % order;
+		z = z ^ p_rs->alphas[ idx ];
+	    }
 	}
 
 	for (int j=0; j<p; j++){
 	    if (j == i){
 		continue;
 	    }
-	    uint8_t d = 1 ^ p_rs->alphas [ (beta_inv_idx + beta_idx[j]) & n];
-	    denom = (denom + p_rs->index_of_alphas[d]) & n;
+	    uint8_t d = 1 ^ p_rs->alphas [ (beta_inv_idx + beta_idx[j]) % order];
+	    denom = (denom + p_rs->index_of_alphas[d]) % order;
 	}
 
-	err_mag[i] = p_rs->alphas[ (p_rs->index_of_alphas[z] - denom + n) & n ];
+	err_mag[i] = p_rs->alphas[ (p_rs->index_of_alphas[z] - denom + order) % order ];
     }
 
     /* reuse syndroms scratch */
@@ -412,8 +442,8 @@ unsigned rs_decode_BM(rs_code         *p_rs
 	syndroms[ beta_idx[i] ] = err_mag[i];
     }
 
-    for (int i=0; i<k; i++){
-	out[i] =  in[i] ^ syndroms[i];
+    for (int i=n-k; i<n; i++){
+	out[i-(n-k)] =  in[i] ^ syndroms[i];
     }
     return k;
 }

@@ -34,13 +34,12 @@ void gf2m_poly_div(uint8_t* fr, int dfr,
                   uint8_t *out, int out_sz,
                   int *dq, int *dr)
 {
-
     memset(out, 0, sizeof(uint8_t) * out_sz);
 
     /* make sure that the degree is the tightest */
     while(!fr[dfr-1] && dfr >0)  dfr--;
     while(!g[dg-1] && dg >0)  dg--;
-    
+
     *dq = dfr - dg + 1;
     while(dfr >= dg){
         uint8_t m = gf2m_div(fr[dfr-1], g[dg-1]);

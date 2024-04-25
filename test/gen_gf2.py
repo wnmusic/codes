@@ -32,7 +32,7 @@ def generate_primitive_mapping(deg):
         cstr += "%d, " % e
         if (i % 16 == 15):
             cstr += '\n'
-    cstr += '\n};'
+    cstr += '1 \n};'
 
     print(cstr)
 
