@@ -11,7 +11,8 @@ endif()
 
 
 SET(CMAKE_C_FLAGS  "-fPIC")
-set(CMAKE_C_FLAGS_RELEASE "-O3 -mavx")
+#set(CMAKE_C_FLAGS_RELEASE "-O3 -S -fprofile-instr-generate -fcoverage-mapping")
+set(CMAKE_C_FLAGS_RELEASE "-O3")
 add_library(libcode src/conv.c src/gf2.c src/rs.c src/gf2m.c)
 
 target_include_directories(libcode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)
