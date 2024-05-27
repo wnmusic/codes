@@ -102,7 +102,7 @@ rs_code* rs_code_construct(int n, int k)
 	}
     }
 
-    p_state->scratch = malloc(6*n);
+    p_state->scratch = malloc(8*n);
     
     return p_state;
 }
@@ -285,14 +285,16 @@ static void rs_syndromes_calc(rs_code          *p_rs
  */
 static void BM_iteration(rs_code       *p_rs
 			,unsigned char *s        /* input syndrome */
+			,int            nb_s			
 			,unsigned char *lambda    /* output error locator polynomial*/
 			,uint8_t       *scratch			
 			)
 {
-    const unsigned t = (p_rs->n - p_rs->k) / 2;
+
     const unsigned n  = p_rs->n;
     const unsigned k  = p_rs->k;
-
+    const unsigned t = (n - k) / 2;
+    
     uint8_t *prev_lambda = scratch;
     uint8_t *tmp_lambda = scratch + t+1;    
     uint8_t L = 0;
@@ -305,7 +307,7 @@ static void BM_iteration(rs_code       *p_rs
     lambda[0] = 1;
     prev_lambda[0] = 1;
 
-    for (uint8_t i=0; i<n-k; i++){
+    for (uint8_t i=0; i<nb_s; i++){
 	uint8_t d = s[i];
 	uint8_t scale;
 	for (uint8_t j=1; j<=L && j<=i; j++){
@@ -362,10 +364,10 @@ unsigned rs_decode_BM(rs_code         *p_rs
     uint8_t	*err_mag       = p_rs->scratch + offset;  offset += t+1;
     uint8_t p = 0;
     
-    assert(offset < 4*n);
+    assert(offset < 8*n);
     
     rs_syndromes_calc(p_rs, in, syndroms, p_rs->scratch + offset);
-    BM_iteration(p_rs, syndroms, err_poly, p_rs->scratch + offset);
+    BM_iteration(p_rs, syndroms, n-k, err_poly, p_rs->scratch + offset);
 
     for (uint8_t i=0; i<=t; i++){
 	err_coefs_idx[i] = p_rs->index_of_alphas[ err_poly[i] ];
@@ -465,25 +467,25 @@ unsigned rs_decode_BM_with_erasure(rs_code         *p_rs
     uint8_t	*erasure_poly  = p_rs->scratch + offset;  offset += nb_era+1;
     uint8_t	*era_poly_idx  = p_rs->scratch + offset;  offset += nb_era+1;    
     uint8_t	*mod_syndroms  = p_rs->scratch + offset;  offset += 2*t;
-    uint8_t	*err_poly      = p_rs->scratch + offset;  offset += (n-k)/2+1;
-    uint8_t	*err_coefs_idx = p_rs->scratch + offset;  offset += (n-k)/2+1;
-    uint8_t	*beta_idx      = p_rs->scratch + offset;  offset += (n-k)/2+1;
-    uint8_t	*z_poly	       = p_rs->scratch + offset;  offset += (n-k)/2+1;
-    uint8_t	*z_poly_idx    = p_rs->scratch + offset;  offset += (n-k)/2+1;
-    uint8_t	*err_mag       = p_rs->scratch + offset;  offset += (n-k)/2+1;
+    uint8_t	*err_poly      = p_rs->scratch + offset;  offset += n-k+1;
+    uint8_t	*err_coefs_idx = p_rs->scratch + offset;  offset += n-k+1;
+    uint8_t	*beta_idx      = p_rs->scratch + offset;  offset += n-k+1;
+    uint8_t	*z_poly	       = p_rs->scratch + offset;  offset += n-k+1;
+    uint8_t	*z_poly_idx    = p_rs->scratch + offset;  offset += n-k+1;
+    uint8_t	*err_mag       = p_rs->scratch + offset;  offset += n-k+1;
     uint8_t p = 0;
 
     
-    assert(offset < 4*n);
+    assert(offset < 8*n);
     memset(erasure_poly, 0, nb_era+1);
     erasure_poly[0] = 1;
     era_poly_idx[0] = 0;
     
     for (int i=0; i<nb_era; i++){
 	uint8_t expo = order - erasures[i];
-	in[ expo ] = 0;
+	in[ erasures[i] ] = 0;
 	for (int j=i+1; j>0; j--){
-	    if (era_poly_idx[j-1]){
+	    if (erasure_poly[j-1]){
 		uint8_t e = EXPONET_ADD(era_poly_idx[j-1], expo, order);
 		erasure_poly[j] = erasure_poly[j] ^ p_rs->alphas[e];
 		era_poly_idx[j] = p_rs->index_of_alphas[ erasure_poly[j] ];
@@ -497,7 +499,8 @@ unsigned rs_decode_BM_with_erasure(rs_code         *p_rs
     for (int i=0; i<(n-k); i++){
 	syn_idx[i] = p_rs->index_of_alphas[ syndroms[i] ];
     }
-    
+
+
     for (int i=0; i<n-k-nb_era; i++){
 	mod_syndroms[i] = syndroms[i];
 	for (int j=1; j<=nb_era; j++){
@@ -506,13 +509,14 @@ unsigned rs_decode_BM_with_erasure(rs_code         *p_rs
 	    }
 	}
     }
-    
-    BM_iteration(p_rs, mod_syndroms, err_poly, p_rs->scratch + offset);
+
+
+    BM_iteration(p_rs, mod_syndroms, n-k-nb_era, err_poly, p_rs->scratch + offset);
 
     for (uint8_t i=0; i<=t; i++){
 	err_coefs_idx[i] = p_rs->index_of_alphas[ err_poly[i] ];
     }
-
+    
     for (int i=n-1; i>=0; i--){
 	/* 1 test if i bit has errors, this is the same as testing
 	 * if alpha^i is a root of err locator polynomial;
@@ -529,6 +533,7 @@ unsigned rs_decode_BM_with_erasure(rs_code         *p_rs
 	    p++;
 	}
     }
+    
     if (p > t){
 	/* decoding failure */
 	return 0;
@@ -540,7 +545,7 @@ unsigned rs_decode_BM_with_erasure(rs_code         *p_rs
 
     /* at this point, we will add the erasures to the error locator */
     for (int i=p; i<p+nb_era; i++){
-	uint8_t expo = erasures[i-t];
+	uint8_t expo = erasures[i-p];
 	err_poly[i+1] = 0;
 	for (int j=i+1;j>0; j--){
 	    if (err_poly[j-1]){
@@ -549,7 +554,7 @@ unsigned rs_decode_BM_with_erasure(rs_code         *p_rs
 		err_coefs_idx[j] = p_rs->index_of_alphas[ err_poly[j] ];
 	    }
 	}
-	beta_idx[i] = erasures[i-t];
+	beta_idx[i] = erasures[i-p];
     }
     p += nb_era;
 
@@ -576,16 +581,19 @@ unsigned rs_decode_BM_with_erasure(rs_code         *p_rs
 		z = z ^ p_rs->alphas[ idx ];
 	    }
 	}
-
-	for (int j=0; j<p; j++){
-	    if (j == i){
-		continue;
+	if (z) {
+	    for (int j=0; j<p; j++){
+		if (j == i){
+		    continue;
+		}
+		uint8_t d = 1 ^ p_rs->alphas [ EXPONET_ADD(beta_inv_idx,  beta_idx[j], order) ];
+		denom = EXPONET_ADD(denom, p_rs->index_of_alphas[d], order);
 	    }
-	    uint8_t d = 1 ^ p_rs->alphas [ EXPONET_ADD(beta_inv_idx,  beta_idx[j], order) ];
-	    denom = EXPONET_ADD(denom, p_rs->index_of_alphas[d], order);
+	    
+	    err_mag[i] = p_rs->alphas[EXPONET_ADD (p_rs->index_of_alphas[z], order-denom, order) ];
+	}else{
+	    err_mag[i] = 0;
 	}
-
-	err_mag[i] = p_rs->alphas[EXPONET_ADD (p_rs->index_of_alphas[z], order-denom, order) ];
     }
 
     /* reuse syndroms scratch */

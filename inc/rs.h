@@ -35,3 +35,12 @@ unsigned rs_decode_BM(rs_code         *p_rs
 		     ,unsigned char   *out
 		     ,int              out_sz
 		     );
+
+unsigned rs_decode_BM_with_erasure(rs_code         *p_rs
+				  ,unsigned char   *in
+				  ,int              in_sz
+				  ,unsigned char   *erasures
+				  ,int              nb_era
+				  ,unsigned char   *out
+				  ,int              out_sz
+				  );
