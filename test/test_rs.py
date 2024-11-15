@@ -6,9 +6,8 @@ import math
 import numpy as np
 
 
-
 def test_rs_encoding(n, k):
-    rs = rs_code_construct(n, k)
+    rs = rs_code_construct(n, k, RS_CODE_POLYVAL)
     info = np.random.randint(0, n, k, dtype=np.uint8);
     
     max_t = (n-k+1)//2
@@ -37,7 +36,7 @@ def test_rs_encoding(n, k):
     rs_code_destroy(rs)
 
 def test_rs_BM(n, k):
-    rs = rs_code_construct(n, k)
+    rs = rs_code_construct(n, k, RS_CODE_CYCLIC)
     #d, genpoly = rs_get_genpoly(rs, n-k+1);
     #print(d, genpoly[0:d])
         
@@ -52,7 +51,7 @@ def test_rs_BM(n, k):
 
     #err = np.array([0, 0, 0, 4, 0, 3, 0], dtype=np.uint8)        
 
-    _, code = rs_encode_sys(rs, info, n)
+    _, code = rs_encode(rs, info, n)
     #print(info, code)
     code = np.bitwise_xor(code, err)
     #print(err, code)
@@ -64,7 +63,7 @@ def test_rs_BM(n, k):
 
 
 def test_rs_all_erased(n, k):
-    rs = rs_code_construct(n, k)
+    rs = rs_code_construct(n, k, RS_CODE_CYCLIC)
     #d, genpoly = rs_get_genpoly(rs, n-k+1);
     #print(d, genpoly[0:d])
         
@@ -79,7 +78,7 @@ def test_rs_all_erased(n, k):
     era = np.array(era, dtype=np.uint8);
     #era = np.array([6,3,2], dtype=np.uint8);
 
-    _, code = rs_encode_sys(rs, info, n)
+    _, code = rs_encode(rs, info, n)
     print(info,code, era)
     _, rec = rs_decode_BM_with_erasure(rs, code, era, k)
 
@@ -87,7 +86,7 @@ def test_rs_all_erased(n, k):
 
 
 def test_rs_with_erasure(n, k, max_nb_era):
-    rs = rs_code_construct(n, k)
+    rs = rs_code_construct(n, k, RS_CODE_CYCLIC)
     #d, genpoly = rs_get_genpoly(rs, n-k+1);
     #print(d, genpoly[0:d])
         
@@ -112,7 +111,7 @@ def test_rs_with_erasure(n, k, max_nb_era):
         if (pos not in era):
             err[pos] = np.random.randint(0, n)
     
-    _, code = rs_encode_sys(rs, info, n)
+    _, code = rs_encode(rs, info, n)
     print(info,code,era,err)
     _, rec = rs_decode_BM_with_erasure(rs, code, era, k)
 

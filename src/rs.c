@@ -11,22 +11,32 @@ struct rs_code_s{
     unsigned k;
     unsigned n;
     unsigned d;
-    
-    uint8_t **generator;
-    uint8_t *genpoly;
-    uint8_t *dec_mat_0;
-    uint8_t *dec_mat_1;
+
     const uint8_t *alphas;
     const uint8_t *index_of_alphas;
     uint8_t  mul_order;
+
+    int method;
+
+    /* polynomrial evaluation construction */
+    uint8_t **generator;
+    uint8_t *dec_mat_0;
+    uint8_t *dec_mat_1;
+    
     /* BM method of decoding */
-       
+    uint8_t *genpoly;
     uint8_t *scratch;
     
 };
 
 
-/* compute the generator polynomials */
+/* compute the generator polynomials
+ *  cyclic (n, k, d) RS code c(x) could be constructed by c(x) = g(x) m(x)
+ *  where g(x) is a n-k degree polynomial m(x) is less than k. the degree of
+ *  c(x) is less then n.
+ *
+ *  g(x) has zeors at a, a^2, a^(n-k) 
+ */
 static void rs_code_genpoly(rs_code *enc)
 {
     int d = enc->n - enc->k;
@@ -48,7 +58,7 @@ static void rs_code_genpoly(rs_code *enc)
 }
 
 
-rs_code* rs_code_construct(int n, int k)
+rs_code* rs_code_construct(int n, int k, int method)
 {
     rs_code *p_state = calloc(sizeof(rs_code), 1);
     int m = deg_plus_one(n);
@@ -66,43 +76,48 @@ rs_code* rs_code_construct(int n, int k)
     
     setup_gf2m_ops(m, &p_state->alphas, &p_state->index_of_alphas, &p_state->mul_order);
     assert(p_state->alphas);
-    
-    p_state->generator = (uint8_t**)calloc(sizeof(uint8_t*), k);
-    for (unsigned i=0; i<k; i++){
-        uint8_t beta = p_state->alphas[i];
-        p_state->generator[i] = (uint8_t*)calloc(sizeof(uint8_t), p_state->n);
 
-        for (unsigned j=0; j<p_state->n; j++){
-            p_state->generator[i][j] = gf2m_power_nz(beta, j);
-        }
-    }
-
-    /* genpoly */
-    p_state->genpoly = (uint8_t*)calloc(sizeof(uint8_t), p_state->d);
-    rs_code_genpoly(p_state);
-
-
-    /* the decoding matrix, the first k+t columns are fixed like Vandermont
-     * matrix, the following t+1 columns are fixed power of the primitive
-     * elements times the recved words. here t=(n-k)/2 and shall be even
-     */
-    {
-	int t = (n-k)/2;
-	p_state->dec_mat_0 = (uint8_t*)calloc(sizeof(uint8_t), n*n);
-	p_state->dec_mat_1 = (uint8_t*)calloc(sizeof(uint8_t), n*n);
+    if (method == RS_CODE_POLYVAL){
 	
-	for (unsigned i=0; i<n; i++){
-	    unsigned j=0; 
-	    for(; j<k+t; j++){
-		p_state->dec_mat_0[i*n + j] = p_state->dec_mat_1[i*n + j]  = gf2m_power_nz(p_state->alphas[i], j);
+	p_state->generator = (uint8_t**)calloc(sizeof(uint8_t*), k);
+	for (unsigned i=0; i<k; i++){
+	    uint8_t beta = p_state->alphas[i];
+	    p_state->generator[i] = (uint8_t*)calloc(sizeof(uint8_t), p_state->n);
+
+	    for (unsigned j=0; j<p_state->n; j++){
+		p_state->generator[i][j] = gf2m_power_nz(beta, j);
 	    }
-	    for(unsigned p=0; p<t; p++, j++){
-		p_state->dec_mat_0[i*n + j] = gf2m_power_nz(p_state->alphas[i], p+1);
+	}
+
+        {
+	    int t = (n-k)/2;
+	    p_state->dec_mat_0 = (uint8_t*)calloc(sizeof(uint8_t), n*n);
+	    p_state->dec_mat_1 = (uint8_t*)calloc(sizeof(uint8_t), n*n);
+	
+	    for (unsigned i=0; i<n; i++){
+		unsigned j=0; 
+		for(; j<k+t; j++){
+		    p_state->dec_mat_0[i*n + j] = p_state->dec_mat_1[i*n + j]  = gf2m_power_nz(p_state->alphas[i], j);
+		}
+		for(unsigned p=0; p<t; p++, j++){
+		    p_state->dec_mat_0[i*n + j] = gf2m_power_nz(p_state->alphas[i], p+1);
+		}
 	    }
 	}
     }
+    else{
+	
+	/* genpoly */
+	p_state->genpoly = (uint8_t*)calloc(sizeof(uint8_t), p_state->d);
+	rs_code_genpoly(p_state);
 
-    p_state->scratch = malloc(8*n);
+	/* the decoding matrix, the first k+t columns are fixed like Vandermont
+	 * matrix, the following t+1 columns are fixed power of the primitive
+	 * elements times the recved words. here t=(n-k)/2 and shall be even
+	 */
+	p_state->scratch = malloc(8*n);
+    }
+    p_state->method = method;
     
     return p_state;
 }
@@ -130,12 +145,12 @@ void rs_code_destroy(rs_code *p)
 }
 
 
-unsigned rs_encode(rs_code *p_enc
-		  ,unsigned char      *in
-		  ,int              in_sz
-		  ,unsigned char      *out
-		  ,int              out_sz
-		  )
+static unsigned rs_encode_polyval(rs_code *p_enc
+				 ,unsigned char      *in
+				 ,int              in_sz
+				 ,unsigned char      *out
+				 ,int              out_sz
+				 )
 {
     assert(in_sz == p_enc->k);
     assert(out_sz >= p_enc->n);
@@ -153,12 +168,12 @@ unsigned rs_encode(rs_code *p_enc
     return p_enc->n;
 }
 
-unsigned rs_encode_sys(rs_code *p_enc
-		      ,unsigned char      *in
-		      ,int              in_sz
-		      ,unsigned char      *out
-		      ,int              out_sz
-		      )
+static unsigned rs_encode_sys(rs_code *p_enc
+			     ,unsigned char      *in
+			     ,int              in_sz
+			     ,unsigned char      *out
+			     ,int              out_sz
+			     )
 {
     const unsigned n  = p_enc->n;
     const unsigned k  = p_enc->k;
@@ -196,6 +211,21 @@ unsigned rs_encode_sys(rs_code *p_enc
     return n;
 }
 
+unsigned rs_encode(rs_code            *p_enc
+		  ,unsigned char      *in
+		  ,int                 in_sz
+		  ,unsigned char      *out
+		  ,int                 out_sz
+		  )
+{
+    if (p_enc->method == RS_CODE_POLYVAL){
+	return rs_encode_polyval(p_enc, in, in_sz, out, out_sz);
+    }else if (p_enc->method == RS_CODE_CYCLIC){
+	return rs_encode_sys(p_enc, in, in_sz, out, out_sz);
+    }
+    assert(0 && "not supported encoding method");
+    return 0;
+}
 
 
 unsigned rs_decode_ge(rs_code         *p_rs
@@ -212,6 +242,10 @@ unsigned rs_decode_ge(rs_code         *p_rs
     int dq = 1, dr = 1;
     uint8_t *b = p_rs->scratch;
     uint8_t *lambda = b + n;
+
+    if (p_rs->method != RS_CODE_POLYVAL){
+	return 0;
+    }
     
     for (unsigned i=0; i<n; i++){
 	unsigned j =0;
